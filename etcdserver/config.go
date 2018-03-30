@@ -80,6 +80,7 @@ type ServerConfig struct {
 	PreVote bool
 
 	Debug bool
+	PersistExpiry bool
 }
 
 // VerifyBootstrap sanity-checks the initial config for bootstrap case

@@ -172,6 +172,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		InitialCorruptCheck:     cfg.ExperimentalInitialCorruptCheck,
 		CorruptCheckTime:        cfg.ExperimentalCorruptCheckTime,
 		PreVote:                 cfg.ExperimentalPreVote,
+		PersistExpiry:					 cfg.PersistExpiry,
 		Debug:                   cfg.Debug,
 	}
 

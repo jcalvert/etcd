@@ -234,6 +234,7 @@ type Config struct {
 	ExperimentalInitialCorruptCheck bool          `json:"experimental-initial-corrupt-check"`
 	ExperimentalCorruptCheckTime    time.Duration `json:"experimental-corrupt-check-time"`
 	ExperimentalEnableV2V3          string        `json:"experimental-enable-v2v3"`
+	PersistExpiry										bool
 
 	// ExperimentalPreVote is true to enable Raft Pre-Vote.
 	// If enabled, Raft runs an additional election phase
