@@ -218,11 +218,7 @@ func (le *lessor) Grant(id LeaseID, ttl int64) (*Lease, error) {
 		l.ttl = le.minLeaseTTL
 	}
 
-	if le.isPrimary() {
-		l.refresh(0)
-	} else {
-		l.forever()
-	}
+	l.refresh(0)
 
 	le.leaseMap[id] = l
 	l.persistTo(le.b)
@@ -307,6 +303,7 @@ func (le *lessor) Renew(id LeaseID) (int64, error) {
 	}
 
 	l.refresh(0)
+	l.persistTo(le.b)
 	return l.ttl, nil
 }
 
@@ -337,46 +334,6 @@ func (le *lessor) Promote(extend time.Duration) {
 	defer le.mu.Unlock()
 
 	le.demotec = make(chan struct{})
-
-	// refresh the expiries of all leases.
-	for _, l := range le.leaseMap {
-		l.refresh(extend)
-	}
-
-	if len(le.leaseMap) < leaseRevokeRate {
-		// no possibility of lease pile-up
-		return
-	}
-
-	// adjust expiries in case of overlap
-	leases := le.unsafeLeases()
-
-	baseWindow := leases[0].Remaining()
-	nextWindow := baseWindow + time.Second
-	expires := 0
-	// have fewer expires than the total revoke rate so piled up leases
-	// don't consume the entire revoke limit
-	targetExpiresPerSecond := (3 * leaseRevokeRate) / 4
-	for _, l := range leases {
-		remaining := l.Remaining()
-		if remaining > nextWindow {
-			baseWindow = remaining
-			nextWindow = baseWindow + time.Second
-			expires = 1
-			continue
-		}
-		expires++
-		if expires <= targetExpiresPerSecond {
-			continue
-		}
-		rateDelay := float64(time.Second) * (float64(expires) / float64(targetExpiresPerSecond))
-		// If leases are extended by n seconds, leases n seconds ahead of the
-		// base window should be extended by only one second.
-		rateDelay -= float64(remaining - baseWindow)
-		delay := time.Duration(rateDelay)
-		nextWindow = baseWindow + delay
-		l.refresh(delay + extend)
-	}
 }
 
 type leasesByExpiry []*Lease
@@ -389,10 +346,6 @@ func (le *lessor) Demote() {
 	le.mu.Lock()
 	defer le.mu.Unlock()
 
-	// set the expiries of all leases to forever
-	for _, l := range le.leaseMap {
-		l.forever()
-	}
 
 	if le.demotec != nil {
 		close(le.demotec)
@@ -546,9 +499,8 @@ func (le *lessor) initAndRecover() {
 			ID:  ID,
 			ttl: lpb.TTL,
 			// itemSet will be filled in when recover key-value pairs
-			// set expiry to forever, refresh when promoted
 			itemSet: make(map[LeaseItem]struct{}),
-			expiry:  forever,
+			expiry:  time.Unix(0, lpb.Expiry),
 			revokec: make(chan struct{}),
 		}
 	}
@@ -578,7 +530,7 @@ func (l *Lease) expired() bool {
 func (l *Lease) persistTo(b backend.Backend) {
 	key := int64ToBytes(int64(l.ID))
 
-	lpb := leasepb.Lease{ID: int64(l.ID), TTL: int64(l.ttl)}
+	lpb := leasepb.Lease{ID: int64(l.ID), TTL: int64(l.ttl), Expiry: l.expiry.UnixNano()}
 	val, err := lpb.Marshal()
 	if err != nil {
 		panic("failed to marshal lease proto item")
