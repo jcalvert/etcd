@@ -54,7 +54,7 @@ func BenchmarkLessorRevoke1000000(b *testing.B)  { benchmarkLessorRevoke(1000000
 
 func benchmarkLessorFindExpired(size int, b *testing.B) {
 	be, tmpPath := backend.NewDefaultTmpBackend()
-	le := newLessor(be, minLeaseTTL)
+	le := newLessor(be, minLeaseTTL, false)
 	defer le.Stop()
 	defer cleanup(be, tmpPath)
 	le.Promote(0)
@@ -71,7 +71,7 @@ func benchmarkLessorFindExpired(size int, b *testing.B) {
 
 func benchmarkLessorGrant(size int, b *testing.B) {
 	be, tmpPath := backend.NewDefaultTmpBackend()
-	le := newLessor(be, minLeaseTTL)
+	le := newLessor(be, minLeaseTTL, false)
 	defer le.Stop()
 	defer cleanup(be, tmpPath)
 	for i := 0; i < size; i++ {
@@ -85,7 +85,7 @@ func benchmarkLessorGrant(size int, b *testing.B) {
 
 func benchmarkLessorRevoke(size int, b *testing.B) {
 	be, tmpPath := backend.NewDefaultTmpBackend()
-	le := newLessor(be, minLeaseTTL)
+	le := newLessor(be, minLeaseTTL, false)
 	defer le.Stop()
 	defer cleanup(be, tmpPath)
 	for i := 0; i < size; i++ {
@@ -102,7 +102,7 @@ func benchmarkLessorRevoke(size int, b *testing.B) {
 
 func benchmarkLessorRenew(size int, b *testing.B) {
 	be, tmpPath := backend.NewDefaultTmpBackend()
-	le := newLessor(be, minLeaseTTL)
+	le := newLessor(be, minLeaseTTL, false)
 	defer le.Stop()
 	defer cleanup(be, tmpPath)
 	for i := 0; i < size; i++ {

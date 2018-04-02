@@ -189,6 +189,9 @@ type Config struct {
 	ExperimentalInitialCorruptCheck bool          `json:"experimental-initial-corrupt-check"`
 	ExperimentalCorruptCheckTime    time.Duration `json:"experimental-corrupt-check-time"`
 	ExperimentalEnableV2V3          string        `json:"experimental-enable-v2v3"`
+
+	PersistExpiry                   bool          `json:"persist-expiry"`
+
 }
 
 // configYAML holds the config suitable for yaml parsing
@@ -247,6 +250,7 @@ func NewConfig() *Config {
 		Metrics:               "basic",
 		EnableV2:              DefaultEnableV2,
 		AuthToken:             "simple",
+		PersistExpiry:         false,
 	}
 	cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
 	return cfg
