@@ -17,7 +17,6 @@ package mvcc
 import (
 	"sort"
 	"sync"
-
 	"github.com/google/btree"
 )
 
@@ -182,43 +181,24 @@ func (ti *treeIndex) RangeSince(key, end []byte, rev int64) []revision {
 
 func (ti *treeIndex) Compact(rev int64) map[revision]struct{} {
 	available := make(map[revision]struct{})
-	var emptyki []*keyIndex
 	plog.Printf("store.index: compact %d", rev)
-	next := true
-	var keyi *keyIndex
-	minitem := ti.tree.Min()
-	if minitem != nil {
-		keyi = ti.tree.Min().(*keyIndex)
-	}
+	ti.Lock()
+	clone := ti.tree.Clone()
+	ti.Unlock()
 
-	for next {
-	  i := 0
-
-	  ti.Lock()
-		next = false
-		ti.tree.AscendGreaterOrEqual(keyi, func(item btree.Item) bool {
-			i++
-			keyi = item.(*keyIndex)
-
-			if i > 10000 {
-				next = true
-				return false
-			}
-			keyi.compact(rev, available)
-			if keyi.isEmpty() {
-				emptyki = append(emptyki, keyi)
-			}
-			return true
-		})
-		for _, ki := range emptyki {
-			item := ti.tree.Delete(ki)
+	clone.Ascend(func(item btree.Item) bool {
+		keyi := item.(*keyIndex)
+		ti.Lock()
+		keyi.compact(rev, available)
+		if keyi.isEmpty() {
+			item := ti.tree.Delete(keyi)
 			if item == nil {
 				plog.Panic("store.index: unexpected delete failure during compaction")
 			}
 		}
-		emptyki = emptyki[:0]
 		ti.Unlock()
-	}
+		return true
+	})
 	return available
 }
 

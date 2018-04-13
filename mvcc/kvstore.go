@@ -239,9 +239,10 @@ func (s *store) Compact(rev int64) (<-chan struct{}, error) {
 	// ensure that desired compaction is persisted
 	s.b.ForceCommit()
 
-	keep := s.kvindex.Compact(rev)
 	ch := make(chan struct{})
 	var j = func(ctx context.Context) {
+		keep := s.kvindex.Compact(rev)
+		indexCompactionPauseDurations.Observe(float64(time.Since(start) / time.Millisecond))
 		if ctx.Err() != nil {
 			s.compactBarrier(ctx, ch)
 			return
@@ -255,7 +256,6 @@ func (s *store) Compact(rev int64) (<-chan struct{}, error) {
 
 	s.fifoSched.Schedule(j)
 
-	indexCompactionPauseDurations.Observe(float64(time.Since(start) / time.Millisecond))
 	return ch, nil
 }
 

@@ -17,7 +17,7 @@ package mvcc
 import (
 	"reflect"
 	"testing"
-
+	"time"
 	"github.com/google/btree"
 )
 
@@ -190,6 +190,24 @@ func TestIndexRangeSince(t *testing.T) {
 		if !reflect.DeepEqual(revs, tt.wrevs) {
 			t.Errorf("#%d: revs = %+v, want %+v", i, revs, tt.wrevs)
 		}
+	}
+}
+
+func TestIndexCompactAndRuntime(t *testing.T) {
+	ti := newTreeIndex()
+	size := 1000000
+	bytesN := 64
+	keys := createBytesSlice(bytesN, size)
+	for i := 1; i < size-1; i++ {
+		ti.Put(keys[i], revision {main: int64(i), sub: int64(i)})
+	}
+	go ti.Compact(int64(500000))
+	time.Sleep(200000 * time.Nanosecond)
+	t1 := time.Now().UnixNano()
+	ti.Put(keys[size-1], revision {main: int64(size-1), sub: int64(size-1)})
+	t2 := time.Now().UnixNano() - t1
+	if t2 > 150000000 {
+		t.Errorf("Run time took too long! %v", t2)
 	}
 }
 
